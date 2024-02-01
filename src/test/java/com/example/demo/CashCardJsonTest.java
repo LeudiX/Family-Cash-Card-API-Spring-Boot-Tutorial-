@@ -12,6 +12,7 @@ import java.io.IOException;
 
 /**
  * Starting with TDD (Test Driven Development) approach
+ * Note: Remember design a failing test first and then create a success one
  */
 @JsonTest /*
            * Using the Jackson framework to provide extensive JSON testing and parsing
@@ -62,7 +63,7 @@ public class CashCardJsonTest {
         assertThat(json.parseObject(expected).getAmount()).isEqualTo(123.45);
     }
 
-    /*Testing new GET features Data Contract */
+    /*Testing new features Data Contract */
 
     /*
      * Serialize the cashCards variable into JSON, then asserts that list.json

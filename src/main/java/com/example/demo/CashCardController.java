@@ -1,9 +1,13 @@
 package com.example.demo;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -40,7 +44,7 @@ public class CashCardController {
             return ResponseEntity.notFound().build();
     }
 
-    /* Saving the new CashCard and return its location. */
+    /*Saving the new CashCard and return its location. */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     private ResponseEntity<Void> createCashCard(@RequestBody CashCard cashCard, UriComponentsBuilder ucb) {
@@ -50,6 +54,16 @@ public class CashCardController {
         URI cashCardLocation = ucb.path("/cashcards/{id}").buildAndExpand(savedCashCard.getId()).toUri();
 
         return ResponseEntity.created(cashCardLocation).build();
+    }
+    /**
+     * 
+     * @return a list of CashCards objects
+     * 
+     */
+    @GetMapping()
+    private ResponseEntity<List<CashCard>> getAllCashCards(Pageable pageable) {
+        Page<CashCard> page = cashCardRepository.findAll(PageRequest.of(pageable.getPageNumber(), pageable.getPageSize()));
+        return ResponseEntity.ok(page.getContent());
     }
 
 }
