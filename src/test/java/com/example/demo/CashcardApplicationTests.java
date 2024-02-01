@@ -21,13 +21,9 @@ class CashcardApplicationTests {
 	private TestRestTemplate restTemplate; /*Injecting a test helper that’ll allow us to make HTTP requests to the locally running application*/
 
 	@Test
-	void contextLoads() {
-	}
-
-	@Test
 	void shouldReturnACashCardWhenDataIsSaved(){
 		/*Using restTemplate to make an HTTP GET request to our application endpoint /cashcards/99*/
-		ResponseEntity<String> response =  restTemplate.getForEntity("/cashcards/99", String.class);
+		ResponseEntity<String> response =  restTemplate.getForEntity("/cashcards/3", String.class);
 		
 		/*Expecting the HTTP reponse status code to be 200 OK*/
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -37,7 +33,7 @@ class CashcardApplicationTests {
 		
 		Number id = dContext.read("$.id");
 		Double amount  = dContext.read("$.amount");
-		assertThat(id).isEqualTo(99);
+		assertThat(id).isEqualTo(3);
 		assertThat(amount).isEqualTo(123.45);
 	}
 
