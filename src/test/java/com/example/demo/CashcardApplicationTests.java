@@ -40,9 +40,9 @@ class CashcardApplicationTests {
 	@BeforeEach
 	void setUp() { /* Creating pre-defined CashCard objects */
 		cashCards = new CashCard[] {
-				new CashCard(99L, 123.45),
-				new CashCard(100L, 100.50),
-				new CashCard(101L, 325.33)
+				new CashCard(99L, 123.45,"LeudiX1"),
+				new CashCard(100L, 100.50,"LeudiX1"),
+				new CashCard(101L, 325.33, "LeudiX1")
 		};
 
 		for (CashCard cashCard : cashCards) { /*
@@ -90,7 +90,7 @@ class CashcardApplicationTests {
 		 * database will create and manage all unique CashCard.id values for us. We
 		 * shouldn't provide one
 		 */
-		CashCard cashCard = new CashCard(null, 100.0);
+		CashCard cashCard = new CashCard(null, 100.0,"LeudiX1");
 
 		ResponseEntity<Void> response = restTemplate.postForEntity("/cashcards", cashCard, Void.class);
 
