@@ -40,16 +40,18 @@ class CashcardApplicationTests {
 	@BeforeEach
 	void setUp() { /* Creating pre-defined CashCard objects */
 		cashCards = new CashCard[] {
-				new CashCard(99L, 123.45,"LeudiX1"),
-				new CashCard(100L, 100.50,"LeudiX1"),
-				new CashCard(101L, 325.33, "LeudiX1")
+				new CashCard(1L, 123.45, "LeudiX1"),
+				new CashCard(2L, 100.50, "LeudiX1"),
+				new CashCard(3L, 325.33, "LeudiX1")
 		};
 
 		for (CashCard cashCard : cashCards) { /*
 												 * Adding multiple CashCard objects via the POST method(Endpoint) in the
 												 * API
 												 */
-			restTemplate.postForEntity("/cashcards", cashCard, Void.class);
+			restTemplate
+			.withBasicAuth("LeudiX1", "leo123") /*Added basic authentication for LeudiX1 user */
+			.postForEntity("/cashcards", cashCard, Void.class);
 		}
 	}
 
@@ -57,9 +59,11 @@ class CashcardApplicationTests {
 	void shouldReturnACashCardWhenDataIsSaved() {
 		/*
 		 * Using restTemplate to make an HTTP GET request to our application endpoint
-		 * /cashcards/99
+		 * /cashcards/1
 		 */
-		ResponseEntity<String> response = restTemplate.getForEntity("/cashcards/3", String.class);
+		ResponseEntity<String> response = restTemplate
+				.withBasicAuth("LeudiX1", "leo123") /*added basic authentication for LeudiX1 user */
+				.getForEntity("/cashcards/1", String.class);
 
 		/* Expecting the HTTP reponse status code to be 200 OK */
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -72,7 +76,7 @@ class CashcardApplicationTests {
 
 		Number id = dContext.read("$.id");
 		Double amount = dContext.read("$.amount");
-		assertThat(id).isEqualTo(3);
+		assertThat(id).isEqualTo(1);
 		assertThat(amount).isEqualTo(123.45);
 	}
 
@@ -90,7 +94,7 @@ class CashcardApplicationTests {
 		 * database will create and manage all unique CashCard.id values for us. We
 		 * shouldn't provide one
 		 */
-		CashCard cashCard = new CashCard(null, 100.0,"LeudiX1");
+		CashCard cashCard = new CashCard(null, 100.0, "LeudiX1");
 
 		ResponseEntity<Void> response = restTemplate.postForEntity("/cashcards", cashCard, Void.class);
 
