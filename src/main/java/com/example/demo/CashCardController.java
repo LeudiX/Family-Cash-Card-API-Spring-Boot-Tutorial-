@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -57,12 +58,17 @@ public class CashCardController {
     }
     /**
      * 
-     * @return a list of CashCards objects
+     * @return a list of CashCards objects sorted ascending by amount
      * 
      */
     @GetMapping()
     private ResponseEntity<List<CashCard>> getAllCashCards(Pageable pageable) {
-        Page<CashCard> page = cashCardRepository.findAll(PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort()));
+
+        /*getSortOr() method provides default values for the page, size, and sort parameters*/
+        /*
+         * Spring provides the default page and size values (they are 0 and 20, respectively)
+         */
+        Page<CashCard> page = cashCardRepository.findAll(PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSortOr(Sort.by(Sort.Direction.ASC, "amount"))));
         return ResponseEntity.ok(page.getContent());
     }
 
