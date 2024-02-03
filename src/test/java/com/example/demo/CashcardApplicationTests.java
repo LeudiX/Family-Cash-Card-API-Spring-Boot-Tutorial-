@@ -96,10 +96,13 @@ class CashcardApplicationTests {
   @Test
   void shouldCreateANewCashCard() {
     /*
-     * database will create and manage all unique CashCard.id values for us. We
-     * shouldn't provide one
+     * Database will create and manage all unique CashCard.id values for us. We
+     * shouldn't provide one. Also we shouldn't provide a CashCard owner cause 
+	 * we risk allowing users to create CashCards for someone else.
+	 * 
+	 * Only the authenticated, authorized Principal owns the CashCards they are creating
      */
-    CashCard cashCard = new CashCard(null, 100.0, "LeudiX1");
+    CashCard cashCard = new CashCard(null, 100.0, null);
 
     ResponseEntity<Void> response = restTemplate
       .withBasicAuth("LeudiX1", "leo123")
@@ -127,9 +130,11 @@ class CashcardApplicationTests {
 
     Number id = docContxt.read("$.id");
     Double amount = docContxt.read("$.amount");
+    String owner = docContxt.read("$.owner");
 
     assertThat(id).isNotNull();
     assertThat(amount).isEqualTo(100.0);
+    assertThat(owner).isEqualTo("LeudiX1");
   }
 
   /*

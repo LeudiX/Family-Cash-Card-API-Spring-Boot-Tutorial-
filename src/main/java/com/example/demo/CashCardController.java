@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import java.net.URI;
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,12 +34,13 @@ public class CashCardController {
                                    * marks a method as a handler method. GET requests that match
                                    * cashcards/{requestedID} will be handled by this method
                                    */
-    private ResponseEntity<CashCard> findById(@PathVariable Long requestedId) { /*
+    private ResponseEntity<CashCard> findById(@PathVariable Long requestedId, Principal principal) { /*
                                                                                  * makes Spring Web aware of the
                                                                                  * requestedId supplied in the HTTP
-                                                                                 * request
+                                                                                 * request and the principal (the current user authenticated
+                                                                                 * and authorized information) 
                                                                                  */
-        Optional<CashCard> cashCard = cashCardRepository.findById(requestedId);
+        Optional<CashCard> cashCard = Optional.ofNullable(cashCardRepository.findByIdAndOwner(requestedId, principal.getName()));//Added principal to get access to current username provided from BasicAuth
         if (cashCard.isPresent()) {
             return ResponseEntity.ok(cashCard.get());
         } else
@@ -50,9 +52,11 @@ public class CashCardController {
     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    private ResponseEntity<Void> createCashCard(@RequestBody CashCard cashCard, UriComponentsBuilder ucb) {
+    private ResponseEntity<Void> createCashCard(@RequestBody CashCard cashCard, UriComponentsBuilder ucb, Principal principal) {
 
-        CashCard savedCashCard = cashCardRepository.save(cashCard);
+        CashCard cashCardWithOwner =  new CashCard(null, cashCard.getAmount(), principal.getName());
+        
+        CashCard savedCashCard = cashCardRepository.save(cashCardWithOwner);
         /* Constructing a URI to the newly created CashCard */
         URI cashCardLocation = ucb.path("/cashcards/{id}").buildAndExpand(savedCashCard.getId()).toUri();
 
@@ -64,13 +68,13 @@ public class CashCardController {
      * 
      */
     @GetMapping()
-    private ResponseEntity<List<CashCard>> getAllCashCards(Pageable pageable) {
+    private ResponseEntity<List<CashCard>> getAllCashCards(Pageable pageable, Principal principal) {
 
-        /*getSortOr() method provides default values for the page, size, and sort parameters*/
         /*
+         * getSortOr() method provides default values for the page, size, and sort parameters
          * Spring provides the default page and size values (they are 0 and 20, respectively)
          */
-        Page<CashCard> page = cashCardRepository.findAll(PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSortOr(Sort.by(Sort.Direction.ASC, "amount"))));
+        Page<CashCard> page = cashCardRepository.findByOwner(principal.getName(),PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSortOr(Sort.by(Sort.Direction.ASC, "amount"))));
         return ResponseEntity.ok(page.getContent());
     }
 
