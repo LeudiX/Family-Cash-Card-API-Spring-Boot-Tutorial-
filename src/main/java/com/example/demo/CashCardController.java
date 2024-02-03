@@ -3,7 +3,6 @@ package com.example.demo;
 import java.net.URI;
 import java.security.Principal;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.bind.annotation.PutMapping;
+
 
 @RestController /* Spring component capable of handling HTTP requests */
 @RequestMapping("/cashcards") /* Indicates which address requests must have to access this Controller */
@@ -40,9 +41,9 @@ public class CashCardController {
                                                                                  * request and the principal (the current user authenticated
                                                                                  * and authorized information) 
                                                                                  */
-        Optional<CashCard> cashCard = Optional.ofNullable(cashCardRepository.findByIdAndOwner(requestedId, principal.getName()));//Added principal to get access to current username provided from BasicAuth
-        if (cashCard.isPresent()) {
-            return ResponseEntity.ok(cashCard.get());
+        CashCard cashCard = findCashCard(requestedId, principal);//Added principal to get access to current username provided from BasicAuth
+        if (cashCard !=null) {
+            return ResponseEntity.ok(cashCard);
         } else
             return ResponseEntity.notFound().build();
     }
@@ -77,5 +78,32 @@ public class CashCardController {
         Page<CashCard> page = cashCardRepository.findByOwner(principal.getName(),PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSortOr(Sort.by(Sort.Direction.ASC, "amount"))));
         return ResponseEntity.ok(page.getContent());
     }
+    /**
+     * 
+     * @param requestedId
+     * @param cashCardUpdate
+     * @param principal
+     * @return  udpdate a CashCard with the specified amount
+     */
+    @PutMapping("/{requestedId}")
+    private ResponseEntity<Void> updateCashCard(@PathVariable Long requestedId, @RequestBody CashCard cashCardUpdate, Principal principal) {
+        
+        /*
+        *Retrieving the CashCard to the submitted requestedId and Principal (provided by Spring Security) to ensure only the authenticated, 
+        *authorized owner may update his CashCard
+        */
+        CashCard cashCard = findCashCard(requestedId, principal);
 
+        if(cashCard != null && principal.getName().equals(cashCard.getOwner())){  
+            CashCard updatedCashCard = new CashCard(cashCard.getId(), cashCardUpdate.getAmount(), principal.getName());
+            cashCardRepository.save(updatedCashCard);
+            // just return 204 NO CONTENT for now.
+            return ResponseEntity.noContent().build();
+        }
+            return ResponseEntity.notFound().build();
+    }
+
+    private CashCard findCashCard(Long requestedId, Principal principal){
+        return cashCardRepository.findByIdAndOwner(requestedId, principal.getName());
+    }
 }

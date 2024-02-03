@@ -12,14 +12,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
-@Configuration/*
+@Configuration
+/*
  * Tells Spring to use this class to configure Spring and Spring Boot itself.
  * Any Beans specified in this class will now be available to Spring's Auto
  * Configuration engine
  */
 class SecurityConfig {
 
-  @Bean/*
+  @Bean
+  /*
    * All HTTP requests to cashcards/ endpoints are required to be authenticated
    * using HTTP Basic Authentication security (username and password).
    * Also, RBAC(Role Based Access Control) it's enabled in order to get access to CashCards information
@@ -30,7 +32,8 @@ class SecurityConfig {
       .authorizeHttpRequests(request ->
         request.requestMatchers("/cashcards/**").hasRole("CARD-OWNER"))/*enable RBAC: Replaced the .authenticated() call with the hasRole(...) call.*/
       .csrf(csrf -> csrf.disable())
-      .httpBasic(Customizer.withDefaults());/*
+      .httpBasic(Customizer.withDefaults());
+    /*
      * enabled basic authentication, requiring that requests must
      * supply a username and password
      */
@@ -38,7 +41,8 @@ class SecurityConfig {
     return http.build();
   }
 
-  @Bean/*
+  @Bean
+  /*
    * Added pre-defined users and roles for authentication and authorization
    * management
    */
@@ -53,12 +57,18 @@ class SecurityConfig {
     UserDetails user2 = users
       .username("Sarah")
       .password(encoder.encode("sara123"))
+      .roles("CARD-OWNER")
+      .build();
+
+      UserDetails user3 = users
+      .username("Lucy2")
+      .password(encoder.encode("lucy123"))
       .roles("NON-OWNER")
       .build();
 
-    return new InMemoryUserDetailsManager(user, user2);
+    return new InMemoryUserDetailsManager(user, user2, user3);
   }
-
+  /*Password encoder */
   @Bean
   PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();

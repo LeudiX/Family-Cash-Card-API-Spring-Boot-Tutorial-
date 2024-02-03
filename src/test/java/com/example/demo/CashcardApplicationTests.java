@@ -11,8 +11,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.annotation.DirtiesContext;
 
 /**
  * Starting with TDD (Test Driven Development) approach
@@ -40,20 +43,32 @@ class CashcardApplicationTests {
       new CashCard[] {
         new CashCard(1L, 123.45, "LeudiX1"),
         new CashCard(2L, 100.50, "Sarah"),
-        new CashCard(3L, 325.33, "Lucy2"),
+        new CashCard(3L, 325.33, "Lucy2"), //
       };
-
-    for (CashCard cashCard : cashCards) {/*
+    /*
      * Adding multiple CashCard objects via the POST method(Endpoint) in the
      * API
      */
-      restTemplate
-        .withBasicAuth(
-          "LeudiX1",
-          "leo123"
-        )/* Added basic authentication for LeudiX1 user */
-        .postForEntity("/cashcards", cashCard, Void.class);
-    }
+    restTemplate
+      .withBasicAuth(
+        "LeudiX1",
+        "leo123"
+      )/* Added basic authentication for LeudiX1 user */
+      .postForEntity("/cashcards", cashCards[0], Void.class);
+
+    restTemplate
+      .withBasicAuth(
+        "Sarah",
+        "sara123"
+      )/* Added basic authentication for Sarah user */
+      .postForEntity("/cashcards", cashCards[1], Void.class);
+
+    restTemplate
+      .withBasicAuth(
+		"Lucy2", 
+		"lucy123"
+		)/* Added basic authentication for Lucy2 user */
+      .postForEntity("/cashcards", cashCards[2], Void.class);
   }
 
   @Test
@@ -97,10 +112,10 @@ class CashcardApplicationTests {
   void shouldCreateANewCashCard() {
     /*
      * Database will create and manage all unique CashCard.id values for us. We
-     * shouldn't provide one. Also we shouldn't provide a CashCard owner cause 
-	 * we risk allowing users to create CashCards for someone else.
-	 * 
-	 * Only the authenticated, authorized Principal owns the CashCards they are creating
+     * shouldn't provide one. Also we shouldn't provide a CashCard owner cause
+     * we risk allowing users to create CashCards for someone else.
+     *
+     * Only the authenticated, authorized Principal owns the CashCards they are creating
      */
     CashCard cashCard = new CashCard(null, 100.0, null);
 
@@ -138,10 +153,10 @@ class CashcardApplicationTests {
   }
 
   /*
-   * We should be able to list all CashCards.
+   * We should be able to list all CashCards owned by an authenticated user(IF POSSES ONE)
    */
   @Test
-  void shouldReturnAllCashCardsWhenListIsRequested() {
+  void shouldReturnAllCashCardsOwnedByAuthUserWhenListIsRequested() {
     ResponseEntity<String> response2 = restTemplate
       .withBasicAuth("LeudiX1", "leo123")
       .getForEntity("/cashcards", String.class);
@@ -154,7 +169,7 @@ class CashcardApplicationTests {
       "$.length()"
     );/* calculates the length of the array */
 
-    assertThat(cashCardCount).isEqualTo(3);
+    assertThat(cashCardCount).isEqualTo(1);
 
     JSONArray ids = docContxt.read(
       "$..id"
@@ -164,8 +179,8 @@ class CashcardApplicationTests {
     );/* retrieves the list of all amount values returned */
 
     /* while the list contain everything I assert, the order does not matter */
-    assertThat(ids).containsExactlyInAnyOrder(1, 2, 3);
-    assertThat(amounts).containsExactlyInAnyOrder(123.45, 100.5, 325.33);
+    assertThat(ids).containsExactlyInAnyOrder(1);
+    assertThat(amounts).containsExactlyInAnyOrder(123.45);
   }
 
   /*
@@ -201,7 +216,7 @@ class CashcardApplicationTests {
     assertThat(page.size()).isEqualTo(1);
 
     double amount = docContext.read("$[0].amount");
-    assertThat(amount).isEqualTo(325.33);
+    assertThat(amount).isEqualTo(123.45);
   }
 
   /*
@@ -218,10 +233,10 @@ class CashcardApplicationTests {
     DocumentContext docContext = JsonPath.parse(responseEntity.getBody());
     JSONArray page = docContext.read("$[*]");
 
-    assertThat(page.size()).isEqualTo(3);
+    assertThat(page.size()).isEqualTo(1);
 
     JSONArray amounts = docContext.read("$[*].amount");
-    assertThat(amounts).containsExactly(100.5, 123.45, 325.33);
+    assertThat(amounts).containsExactly(123.45);
   }
 
   /*
@@ -230,18 +245,81 @@ class CashcardApplicationTests {
   @Test
   void shouldRejectAnyUserWhoAreNotACardOwner() {
     ResponseEntity<String> responseEntity = restTemplate
-      .withBasicAuth("Sarah", "sara123")
-      .getForEntity("/cashcards/2", String.class);
+      .withBasicAuth("Lucy2", "lucy123")
+      .getForEntity("/cashcards/3", String.class);
     assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
   }
+
   /*
-   * asserts that my API returns a 404 NOT FOUND when a user attempts to access 
+   * asserts that my API returns a 404 NOT FOUND when a user attempts to access
    * a Cash Card they do not own, so the CashCard existence it's not revealed to
    * the user
    */
   @Test
   void usersShouldNotHaveAccessToOtherUsersCards() {
-	ResponseEntity<String> responseEntity = restTemplate.withBasicAuth("Sarah", "sara123").getForEntity("/cashcards/3", String.class); //Lucy's CashCard data
-	   assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    ResponseEntity<String> responseEntity = restTemplate
+      .withBasicAuth("Sarah", "sara123")
+      .getForEntity("/cashcards/3", String.class); //Lucy's CashCard data
+    assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+  }
+
+  /*
+   * Update An Existing CashCard once its owner has been authenticated and authorized by the system
+   */
+  @Test
+  @DirtiesContext //Cleaning the contexts executed before
+  void shouldUpdateAnExistingCashCard() {
+    CashCard cashCard = new CashCard(null, 500.50, null);
+
+    ResponseEntity<Void> responseEntity = restTemplate
+      .withBasicAuth("Sarah", "sara123")
+      .exchange(
+        "/cashcards/2",
+        HttpMethod.PUT,
+        new HttpEntity<>(cashCard),
+        Void.class
+      ); //restTemplate.putForEntity() doesn't exist!
+    assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+    ResponseEntity<String> getResponse = restTemplate
+      .withBasicAuth("Sarah", "sara123")
+      .getForEntity("/cashcards/2", String.class);
+    assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+    DocumentContext dContext = JsonPath.parse(getResponse.getBody());
+    Number id = dContext.read("$.id");
+    Double amount = dContext.read("$.amount");
+
+    assertThat(id).isEqualTo(2);
+    assertThat(amount).isEqualTo(500.50);
+  }
+
+  /*
+   * The API should not update a CashCard that doesn't exist.
+   */
+  @Test
+  void shouldNotUpdateACashCardThatDoesNotExist() {
+    CashCard unknownCashCard = new CashCard(null, 300.50, null);
+
+    HttpEntity<CashCard> request = new HttpEntity<>(unknownCashCard);
+
+    ResponseEntity<Void> responseEntity = restTemplate
+      .withBasicAuth("Sarah", "sara123")
+      .exchange("/cashcards/999", HttpMethod.PUT, request, Void.class);
+    assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+  }
+
+  /*
+   * The API should not update a CashCard that belongs to someone else.
+   */
+  @Test
+  void shouldNotUpdateACashCardThatBelongsToSomeoneElse() {
+    CashCard lucyCashCard = new CashCard(null, 255.50, null);
+
+    HttpEntity<CashCard> request = new HttpEntity<>(lucyCashCard);
+    ResponseEntity<Void> responseEntity = restTemplate
+      .withBasicAuth("LeudiX1", "leo123")
+      .exchange("/cashcards/3", HttpMethod.PUT, request, Void.class);
+    assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
   }
 }
