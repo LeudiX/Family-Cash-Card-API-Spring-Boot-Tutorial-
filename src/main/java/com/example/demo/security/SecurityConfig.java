@@ -12,43 +12,55 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
-@Configuration /*
-                * Tells Spring to use this class to configure Spring and Spring Boot itself.
-                * Any Beans specified in this class will now be available to Spring's Auto
-                * Configuration engine
-                */
+@Configuration/*
+ * Tells Spring to use this class to configure Spring and Spring Boot itself.
+ * Any Beans specified in this class will now be available to Spring's Auto
+ * Configuration engine
+ */
 class SecurityConfig {
 
-    @Bean /*
-           * All HTTP requests to cashcards/ endpoints are required to be authenticated
-           * using HTTP Basic Authentication security (username and password).
-           * 
-           * Also, do not require CSRF security.
-           */
-    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .authorizeHttpRequests(request -> request
-                        .requestMatchers("/cashcards/**")
-                        .authenticated())
-                .csrf(csrf -> csrf.disable())
-                .httpBasic(Customizer.withDefaults()); /*
-                                                        * enabled basic authentication, requiring that requests must
-                                                        * supply a username and password
-                                                        */
+  @Bean/*
+   * All HTTP requests to cashcards/ endpoints are required to be authenticated
+   * using HTTP Basic Authentication security (username and password).
+   * Also, RBAC(Role Based Access Control) it's enabled in order to get access to CashCards information
+   * Also, do not require CSRF security.
+   */
+  SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http
+      .authorizeHttpRequests(request ->
+        request.requestMatchers("/cashcards/**").hasRole("CARD-OWNER"))/*enable RBAC: Replaced the .authenticated() call with the hasRole(...) call.*/
+      .csrf(csrf -> csrf.disable())
+      .httpBasic(Customizer.withDefaults());/*
+     * enabled basic authentication, requiring that requests must
+     * supply a username and password
+     */
 
-        return http.build();
-    }
+    return http.build();
+  }
 
-    @Bean
-    UserDetailsService onlyTestUsers(PasswordEncoder encoder) {
-        User.UserBuilder users = User.builder();
-        UserDetails user = users.username("LeudiX1").password(encoder.encode("leo123")).roles().build();
-    
-        return new InMemoryUserDetailsManager(user);
-    }
+  @Bean/*
+   * Added pre-defined users and roles for authentication and authorization
+   * management
+   */
+  UserDetailsService onlyTestUsers(PasswordEncoder encoder) {
+    User.UserBuilder users = User.builder();
+    UserDetails user = users
+      .username("LeudiX1")
+      .password(encoder.encode("leo123"))
+      .roles("CARD-OWNER")
+      .build();
 
-    @Bean
-    PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    UserDetails user2 = users
+      .username("Sarah")
+      .password(encoder.encode("sara123"))
+      .roles("NON-OWNER")
+      .build();
+
+    return new InMemoryUserDetailsManager(user, user2);
+  }
+
+  @Bean
+  PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
 }
