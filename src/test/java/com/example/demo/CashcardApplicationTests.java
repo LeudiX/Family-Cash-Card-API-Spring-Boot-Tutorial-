@@ -65,9 +65,9 @@ class CashcardApplicationTests {
 
     restTemplate
       .withBasicAuth(
-		"Lucy2", 
-		"lucy123"
-		)/* Added basic authentication for Lucy2 user */
+        "Lucy2",
+        "lucy123"
+      )/* Added basic authentication for Lucy2 user */
       .postForEntity("/cashcards", cashCards[2], Void.class);
   }
 
@@ -321,5 +321,54 @@ class CashcardApplicationTests {
       .withBasicAuth("LeudiX1", "leo123")
       .exchange("/cashcards/3", HttpMethod.PUT, request, Void.class);
     assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+  }
+
+  /*
+   * The API should allows the deletion of a CashCard owned by a user
+   */
+  @Test
+  @DirtiesContext //Add this annotation to all tests which change the data. If don't, then these tests could affect the result of other tests in the file
+  void shouldDeleteAnExistingCashCardRecord() {
+    ResponseEntity<Void> responseEntity = restTemplate
+      .withBasicAuth("Sarah", "sara123")
+      .exchange("/cashcards/2", HttpMethod.DELETE, null, Void.class); //Removing the CashCard
+
+    assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+    ResponseEntity<String> responseEntity2 = restTemplate
+      .withBasicAuth("Sarah", "sara123")
+      .getForEntity("/cashcards/2", String.class); //Try to GET the deleted CashCard
+
+    assertThat(responseEntity2.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND); //Asserting that the CashCard was already deleted
+  }
+
+  @Test
+  void shouldNotDeleteACashCardThatDoesNotExist() {
+    ResponseEntity<Void> responseEntity = restTemplate
+      .withBasicAuth("LeudiX1", "leo123")
+      .exchange("/cashcards/10", HttpMethod.DELETE, null, Void.class);
+
+    assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+  }
+
+  /*
+   * The API should not allow the deletion of a CashCard to another user who is not his owner
+   */
+  @Test
+  void shouldNotDeleteACashCardTheyDoNotOwn() {
+    ResponseEntity<Void> deleteResponse = restTemplate
+      .withBasicAuth("Sarah", "sara123")
+      .exchange("/cashcards/1", HttpMethod.DELETE, null, Void.class);
+
+    assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+
+    /*
+     * Verifying that the record I tried unsuccessfully to delete is still ther
+     */
+    ResponseEntity<String> getresponse = restTemplate
+      .withBasicAuth("LeudiX1", "leo123")
+      .getForEntity("/cashcards/1", String.class);
+
+    assertThat(getresponse.getStatusCode()).isEqualTo(HttpStatus.OK);
   }
 }

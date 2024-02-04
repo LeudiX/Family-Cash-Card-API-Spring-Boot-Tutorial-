@@ -11,6 +11,8 @@ interface CashCardRepository extends CrudRepository<CashCard, Long>, PagingAndSo
     CashCard findByIdAndOwner(Long id, String owner); //Filtering data access by CashCard owner
 
     Page<CashCard> findByOwner(String owner, Pageable pageable); //Filtering data access by CashCard owner
+
+    boolean existsByIdAndOwner(Long id, String owner); //Checking the existence of a CasChard. Obtaining just the necessary information about the CashCard's existential status
 }
 
 /*
